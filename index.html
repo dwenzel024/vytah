@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="cs" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Výtahová Simulace 3IT KYME - Pokročilý SCAN/LOOK Algoritmus</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            900: '#14532d',
+                        },
+                        darkbg: '#0b0f17',
+                        cardbg: '#111827',
+                        borderbg: '#1f293d'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0b0f17;
+            color: #f3f4f6;
+        }
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #111827;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #374151;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4b5563;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col bg-darkbg text-gray-100 antialiased selection:bg-brand-500 selection:text-white">
+
+    <!-- Header Navigation -->
+    <header class="border-b border-borderbg bg-cardbg/80 backdrop-blur sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center shadow-lg shadow-brand-500/20">
+                    <i data-lucide="building-2" class="w-5 h-5 text-white"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight tracking-tight text-white flex items-center gap-2">
+                        Simulátor Výtahu 3IT KYME
+                        <span class="text-xs px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20 font-mono">SCAN/LOOK v3.0</span>
+                    </h1>
+                    <p class="text-xs text-gray-400">Optimalizace plynulosti přepravy • Zadání: Běžný den ve škole (400 lidí)</p>
+                </div>
+            </div>
+
+            <!-- View Tab Selector -->
+            <nav class="flex items-center space-x-1 bg-gray-900/80 p-1 rounded-lg border border-borderbg">
+                <button id="tab-btn-sim" onclick="switchTab('sim')" class="px-3 py-1.5 rounded-md text-xs font-semibold transition flex items-center gap-2 bg-brand-600 text-white shadow-sm">
+                    <i data-lucide="play" class="w-3.5 h-3.5"></i> Simulace
+                </button>
+                <button id="tab-btn-passengers" onclick="switchTab('passengers')" class="px-3 py-1.5 rounded-md text-xs font-semibold text-gray-400 hover:text-white transition flex items-center gap-2">
+                    <i data-lucide="users" class="w-3.5 h-3.5"></i> Cestující (<span id="tab-count-passengers">400</span>)
+                </button>
+                <button id="tab-btn-doc" onclick="switchTab('doc')" class="px-3 py-1.5 rounded-md text-xs font-semibold text-gray-400 hover:text-white transition flex items-center gap-2">
+                    <i data-lucide="file-text" class="w-3.5 h-3.5"></i> Dokumentace & RACI
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main App Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+
+        <!-- TAB 1: SIMULATOR & GRAPHICS -->
+        <div id="tab-sim" class="space-y-6">
+
+            <!-- Top Dashboard Stats Bar -->
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                <div class="bg-cardbg border border-borderbg rounded-xl p-3.5 flex flex-col justify-between shadow-md">
+                    <div class="flex items-center justify-between text-xs text-gray-400 font-medium">
+                        <span>Čas Simulace</span>
+                        <i data-lucide="clock" class="w-4 h-4 text-brand-400"></i>
+                    </div>
+                    <div class="mt-2 text-xl font-bold mono text-white" id="stat-sim-time">00:00.0s</div>
+                    <div class="text-[10px] text-gray-500 mt-1">Reálný virtuální čas</div>
+                </div>
+
+                <div class="bg-cardbg border border-borderbg rounded-xl p-3.5 flex flex-col justify-between shadow-md">
+                    <div class="flex items-center justify-between text-xs text-gray-400 font-medium">
+                        <span>Odbaveno osob</span>
+                        <i data-lucide="user-check" class="w-4 h-4 text-emerald-400"></i>
+                    </div>
+                    <div class="mt-2 text-xl font-bold mono text-white"><span id="stat-delivered">0</span> <span class="text-xs text-gray-500 font-normal">/ 400</span></div>
+                    <div class="w-full bg-gray-800 rounded-full h-1.5 mt-2 overflow-hidden">
+                        <div id="stat-progress-bar" class="bg-brand-500 h-1.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="bg-cardbg border border-borderbg rounded-xl p-3.5 flex flex-col justify-between shadow-md">
+                    <div class="flex items-center justify-between text-xs text-gray-400 font-medium">
+                        <span>Prům. Čekání</span>
+                        <i data-lucide="hourglass" class="w-4 h-4 text-amber-400"></i>
+                    </div>
+                    <div class="mt-2 text-xl font-bold mono text-amber-400" id="stat-avg-wait">0.0s</div>
+                    <div class="text-[10px] text-gray-500 mt-1">Max: <span id="stat-max-wait" class="mono">0.0s</span></div>
+                </div>
+
+                <div class="bg-cardbg border border-borderbg rounded-xl p-3.5 flex flex-col justify-between shadow-md">
+                    <div class="flex items-center justify-between text-xs text-gray-400 font-medium">
+                        <span>Prům. Doba Jízdy</span>
+                        <i data-lucide="navigation" class="w-4 h-4 text-blue-400"></i>
+                    </div>
+                    <div class="mt-2 text-xl font-bold mono text-blue-400" id="stat-avg-ride">0.0s</div>
+                    <div class="text-[10px] text-gray-500 mt-1">Celkem: <span id="stat-avg-total" class="mono">0.0s</span></div>
+                </div>
+
+                <div class="bg-cardbg border border-borderbg rounded-xl p-3.5 flex flex-col justify-between shadow-md">
+                    <div class="flex items-center justify-between text-xs text-gray-400 font-medium">
+                        <span>Ujetá Vzdálenost</span>
+                        <i data-lucide="ruler" class="w-4 h-4 text-purple-400"></i>
+                    </div>
+                    <div class="mt-2 text-xl font-bold mono text-purple-400" id="stat-distance">0.0 m</div>
+                    <div class="text-[10px] text-gray-500 mt-1">Přejezdů pater: <span id="stat-floor-passes" class="mono">0</span></div>
+                </div>
+
+                <div class="bg-cardbg border border-borderbg rounded-xl p-3.5 flex flex-col justify-between shadow-md">
+                    <div class="flex items-center justify-between text-xs text-gray-400 font-medium">
+                        <span>Zastavení / Dveře</span>
+                        <i data-lucide="door-open" class="w-4 h-4 text-rose-400"></i>
+                    </div>
+                    <div class="mt-2 text-xl font-bold mono text-rose-400" id="stat-stops">0</div>
+                    <div class="text-[10px] text-gray-500 mt-1">Stav: <span id="stat-elevator-state" class="text-brand-400 font-semibold">Stojí</span></div>
+                </div>
+            </div>
+
+            <!-- Main Interactive Controls Bar -->
+            <div class="bg-cardbg border border-borderbg rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4 shadow-xl">
+                <!-- Playback Buttons -->
+                <div class="flex items-center gap-2">
+                    <button id="btn-play" onclick="togglePlayPause()" class="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm transition flex items-center gap-2 shadow-lg shadow-brand-600/30">
+                        <i data-lucide="play" class="w-4 h-4 fill-current"></i> Spustit
+                    </button>
+                    <button id="btn-reset" onclick="resetSimulation()" class="px-3.5 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 font-medium text-sm transition flex items-center gap-2 border border-borderbg">
+                        <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Restart
+                    </button>
+                    <button onclick="stepSimulation()" class="px-3.5 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 font-medium text-sm transition flex items-center gap-2 border border-borderbg" title="Posunout o 1 sekundu">
+                        <i data-lucide="step-forward" class="w-4 h-4"></i> +1s
+                    </button>
+                </div>
+
+                <!-- Speed Multiplier Slider -->
+                <div class="flex items-center gap-3 bg-gray-900/90 px-4 py-2.5 rounded-xl border border-borderbg min-w-[280px]">
+                    <i data-lucide="zap" class="w-4 h-4 text-amber-400"></i>
+                    <span class="text-xs font-medium text-gray-400">Rychlost:</span>
+                    <input type="range" id="speed-slider" min="1" max="100" value="5" class="w-full accent-brand-500 cursor-pointer" oninput="updateSpeedFromSlider(this.value)">
+                    <span id="speed-label" class="text-xs font-bold mono text-brand-400 w-10 text-right">5x</span>
+                </div>
+
+                <!-- Algorithm mode badge -->
+                <div class="flex items-center gap-2 text-xs bg-gray-900/60 px-3.5 py-2.5 rounded-xl border border-borderbg">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span class="text-gray-400">Strategie:</span>
+                    <span class="font-bold text-white">SCAN/LOOK + Ground-Floor Return</span>
+                </div>
+            </div>
+
+            <!-- Building Visualizer & Live Monitor Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+                <!-- Left 7 Cols: Canvas Visualizer of Building -->
+                <div class="lg:col-span-7 bg-cardbg border border-borderbg rounded-2xl p-4 flex flex-col justify-between shadow-2xl relative overflow-hidden">
+                    <div class="flex items-center justify-between pb-3 border-b border-borderbg mb-2">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="building" class="w-4 h-4 text-brand-400"></i>
+                            <h2 class="font-bold text-sm text-white">Vizualizace Šachty & 8 Pater Budovy</h2>
+                        </div>
+                        <div class="flex items-center gap-3 text-xs">
+                            <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-blue-500/30 border border-blue-400 inline-block"></span> Jde Nahoru</span>
+                            <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-amber-500/30 border border-amber-400 inline-block"></span> Jde Dolů</span>
+                        </div>
+                    </div>
+
+                    <!-- Canvas Frame -->
+                    <div class="relative w-full h-[540px] bg-gray-950 rounded-xl overflow-hidden border border-borderbg flex items-center justify-center">
+                        <canvas id="building-canvas" class="w-full h-full block"></canvas>
+                    </div>
+
+                    <!-- Canvas Foot Legend -->
+                    <div class="mt-3 flex items-center justify-between text-[11px] text-gray-400 px-1">
+                        <div>Kapacita: <b class="text-white">6 osob</b> | Rychlost: <b class="text-white">2.0 m/s</b></div>
+                        <div>Parametr destVisible: <b class="text-amber-400 font-mono">false</b> (zjištění směru)</div>
+                    </div>
+                </div>
+
+                <!-- Right 5 Cols: Live State & Logs -->
+                <div class="lg:col-span-5 space-y-6 flex flex-col">
+                    
+                    <!-- Elevator Cab Detail Card -->
+                    <div class="bg-cardbg border border-borderbg rounded-2xl p-5 shadow-xl">
+                        <div class="flex items-center justify-between pb-3 border-b border-borderbg mb-4">
+                            <h3 class="font-bold text-sm text-white flex items-center gap-2">
+                                <i data-lucide="box" class="w-4 h-4 text-brand-400"></i>
+                                Detail Kabiny Výtahu
+                            </h3>
+                            <span id="cab-direction-badge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-gray-800 text-gray-300 border border-gray-700">
+                                STOP
+                            </span>
+                        </div>
+
+                        <!-- Elevator Status Indicators -->
+                        <div class="grid grid-cols-2 gap-3 mb-4">
+                            <div class="bg-gray-900/80 p-3 rounded-xl border border-borderbg">
+                                <div class="text-[10px] text-gray-400 uppercase font-semibold">Aktuální Pozice</div>
+                                <div class="text-xl font-bold text-white mt-1 flex items-baseline gap-1">
+                                    <span id="cab-floor-display">Patro 0</span>
+                                    <span id="cab-height-display" class="text-xs font-normal text-gray-500 mono">(0.0m)</span>
+                                </div>
+                            </div>
+                            <div class="bg-gray-900/80 p-3 rounded-xl border border-borderbg">
+                                <div class="text-[10px] text-gray-400 uppercase font-semibold">Obsazenost Kabiny</div>
+                                <div class="text-xl font-bold text-white mt-1 flex items-baseline gap-1">
+                                    <span id="cab-passengers-count">0</span> / 6
+                                    <span id="cab-full-badge" class="hidden text-[10px] px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-400 font-bold border border-rose-500/30">PLNO</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Door visual status -->
+                        <div class="mb-4 bg-gray-900/60 p-3 rounded-xl border border-borderbg flex items-center justify-between">
+                            <span class="text-xs text-gray-400">Stav Dveří Kabiny:</span>
+                            <span id="cab-doors-status" class="text-xs font-bold px-2 py-1 rounded bg-gray-800 text-gray-300">Zavřeno</span>
+                        </div>
+
+                        <!-- Passengers inside Cab List -->
+                        <div>
+                            <div class="text-xs font-semibold text-gray-400 mb-2 flex items-center justify-between">
+                                <span>Cestující v kabině:</span>
+                                <span class="text-[10px] text-gray-500">Cílové patro známé až uvnitř</span>
+                            </div>
+                            <div id="cab-passenger-list" class="flex flex-wrap gap-1.5 max-h-[110px] overflow-y-auto p-2 bg-gray-950 rounded-xl border border-borderbg min-h-[50px] items-center">
+                                <span class="text-xs text-gray-600 italic mx-auto">Kabina je prázdná</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Live Event Logs Panel -->
+                    <div class="bg-cardbg border border-borderbg rounded-2xl p-5 shadow-xl flex-1 flex flex-col min-h-[260px]">
+                        <div class="flex items-center justify-between pb-3 border-b border-borderbg mb-3">
+                            <h3 class="font-bold text-sm text-white flex items-center gap-2">
+                                <i data-lucide="list-tree" class="w-4 h-4 text-amber-400"></i>
+                                Živý Deník Událostí Simulace
+                            </h3>
+                            <button onclick="clearLogs()" class="text-[11px] text-gray-500 hover:text-gray-300 transition">Vyčistit</button>
+                        </div>
+                        <div id="sim-logs-container" class="flex-1 bg-gray-950 rounded-xl border border-borderbg p-3 mono text-xs overflow-y-auto space-y-1.5 max-h-[220px]">
+                            <div class="text-gray-500 text-[11px]">[00:00.0] Simulace připravena. Klikněte na Spustit.</div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+        <!-- TAB 2: PASSENGERS TABLE -->
+        <div id="tab-passengers" class="hidden space-y-6">
+            <div class="bg-cardbg border border-borderbg rounded-2xl p-6 shadow-xl space-y-4">
+                <div class="flex flex-wrap items-center justify-between gap-4 border-b border-borderbg pb-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                            <i data-lucide="users" class="w-5 h-5 text-brand-400"></i>
+                            Seznam a Stav Všech 400 Cestujících
+                        </h2>
+                        <p class="text-xs text-gray-400 mt-0.5">Kompletní přehled příchodů, čekání a cílových stanic podle zadání simulace</p>
+                    </div>
+
+                    <!-- Search & Filters -->
+                    <div class="flex flex-wrap items-center gap-3">
+                        <div class="relative">
+                            <i data-lucide="search" class="w-4 h-4 text-gray-500 absolute left-3 top-2.5"></i>
+                            <input type="text" id="passenger-search" placeholder="Hledat podle ID..." oninput="filterPassengerTable()" class="pl-9 pr-3 py-1.5 bg-gray-900 border border-borderbg rounded-xl text-xs text-white focus:outline-none focus:border-brand-500 w-40">
+                        </div>
+                        <select id="passenger-status-filter" onchange="filterPassengerTable()" class="bg-gray-900 border border-borderbg rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-brand-500">
+                            <option value="all">Všechny Stavy</option>
+                            <option value="waiting">Čeká v patře</option>
+                            <option value="riding">Vesení v kabině</option>
+                            <option value="delivered">Odbaveno</option>
+                            <option value="future">Ještě nepřišel</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Table Container -->
+                <div class="overflow-x-auto max-h-[600px] border border-borderbg rounded-xl">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-gray-900/90 text-gray-400 font-semibold sticky top-0 border-b border-borderbg">
+                            <tr>
+                                <th class="p-3">ID Osoby</th>
+                                <th class="p-3">Čas Příchodu</th>
+                                <th class="p-3">Z Patra</th>
+                                <th class="p-3">Do Patra</th>
+                                <th class="p-3">Směr</th>
+                                <th class="p-3">Stav</th>
+                                <th class="p-3">Čekání na výtah</th>
+                                <th class="p-3">Doba v kabině</th>
+                                <th class="p-3">Celková Doba</th>
+                            </tr>
+                        </thead>
+                        <tbody id="passenger-table-body" class="divide-y divide-borderbg/50 mono">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: DOCUMENTATION & RACI -->
+        <div id="tab-doc" class="hidden space-y-6">
+            <div class="bg-cardbg border border-borderbg rounded-2xl p-6 shadow-xl space-y-8 text-gray-300">
+                
+                <!-- Document Header -->
+                <div class="border-b border-borderbg pb-4">
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                        <i data-lucide="file-text" class="w-6 h-6 text-brand-400"></i>
+                        Dokumentace Návrhu a Matice Odpovědnosti (RACI)
+                    </h2>
+                    <p class="text-sm text-gray-400 mt-1">Technická specifikace řešení výtahového algoritmu pro školní projekt 3IT KYME</p>
+                </div>
+
+                <!-- Section 1: Algorithm Description -->
+                <section class="space-y-3">
+                    <h3 class="text-base font-bold text-white flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-lg bg-brand-500/20 text-brand-400 flex items-center justify-center text-xs font-mono">1</span>
+                        Princip Pokročilého Algoritmu SCAN/LOOK
+                    </h3>
+                    <p class="text-xs leading-relaxed text-gray-300">
+                        Původní ukázkový výtah reagoval na požadavky v režimu FIFO (First In First Out), což způsobovalo neefektivní přejezdy přes celou budovu bez odbavení cestujících po cestě. Náš nový algoritmus využívá princip **LOOK/SCAN** s adaptivním vylepšením pro školní budovu:
+                    </p>
+                    <ul class="list-disc list-inside text-xs space-y-2 text-gray-400 pl-2">
+                        <li><b class="text-white">Směrová Spojitost (Directional Continuity):</b> Výtah pokračuje v daném směru (NAHORU nebo DOLŮ), dokud má v daném směru v kabině cestující nebo na patrech čekající osoby.</li>
+                        <li><b class="text-white">Chytré Filtrování Nástupu (destVisible = false):</b> Protože výtah na chodbě nevidí konkrétní cílové patro cestujícího, ale pouze jeho požadavek (tlačítko nahoru/dolů), pustí do kabiny výhradně ty osoby, které požadují směr shodný s aktuálním vektorem jízdy výtahu.</li>
+                        <li><b class="text-white">Dynamické Otáčení (LOOK):</b> Výtah nejezdí zbytečně do nejvyššího (7.) nebo nejnižšího (0.) patra, pokud tam nevedou žádné požadavky. Otáčí se v nejvzdálenějším patře, kde ještě někdo vystupuje nebo nastupuje.</li>
+                        <li><b class="text-white">Adaptivní Návrat do Přízemí:</b> Pokud je výtah v režimu nečinnosti (idle) a nenachází se v něm žádní cestující, automaticky se přesouvá do patra 0 (Přízemí), což eliminuje ranní špičkový prostoje u školního vstupu.</li>
+                    </ul>
+                </section>
+
+                <!-- Section 2: Mathematical formulas -->
+                <section class="space-y-3 bg-gray-950 p-4 rounded-xl border border-borderbg">
+                    <h3 class="text-sm font-bold text-white">Sledované Kvantitativní Metriky</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-mono">
+                        <div class="bg-gray-900 p-3 rounded-lg border border-borderbg">
+                            <div class="text-brand-400 font-bold mb-1">Průměrné Čekání (T_wait)</div>
+                            <div class="text-gray-400 text-[11px]">∑ (T_nástup - T_příchod) / N</div>
+                        </div>
+                        <div class="bg-gray-900 p-3 rounded-lg border border-borderbg">
+                            <div class="text-blue-400 font-bold mb-1">Průměrná Jízda (T_ride)</div>
+                            <div class="text-gray-400 text-[11px]">∑ (T_výstup - T_nástup) / N</div>
+                        </div>
+                        <div class="bg-gray-900 p-3 rounded-lg border border-borderbg">
+                            <div class="text-purple-400 font-bold mb-1">Celková Doprava (T_total)</div>
+                            <div class="text-gray-400 text-[11px]">∑ (T_výstup - T_příchod) / N</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Section 3: RACI Matrix -->
+                <section class="space-y-3">
+                    <h3 class="text-base font-bold text-white flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-lg bg-brand-500/20 text-brand-400 flex items-center justify-center text-xs font-mono">2</span>
+                        Matice Odpovědnosti RACI (Podklad pro README.md)
+                    </h3>
+                    <p class="text-xs text-gray-400">Rozdělení rolí a úkolů týmu v rámci projektu výtahu 3IT KYME:</p>
+                    
+                    <div class="overflow-x-auto border border-borderbg rounded-xl">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-gray-900 text-gray-300 font-semibold border-b border-borderbg">
+                                <tr>
+                                    <th class="p-3">Úkol / Činnost</th>
+                                    <th class="p-3 text-center">Vývojář Algoritmu</th>
+                                    <th class="p-3 text-center">Frontend & Vizualizace</th>
+                                    <th class="p-3 text-center">Analytik Dat & Testování</th>
+                                    <th class="p-3 text-center">Vedoucí Projektu</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-borderbg/50">
+                                <tr>
+                                    <td class="p-3 font-medium text-white">Analýza datového souboru JSON</td>
+                                    <td class="p-3 text-center font-bold text-amber-400">C</td>
+                                    <td class="p-3 text-center font-bold text-amber-400">I</td>
+                                    <td class="p-3 text-center font-bold text-emerald-400">R / A</td>
+                                    <td class="p-3 text-center font-bold text-amber-400">C</td>
+                                </tr>
+                                <tr>
+                                    <td class="p-3 font-medium text-white">Návrh řídicí logiky SCAN/LOOK</td>
+                                    <td class="p-3 text-center font-bold text-emerald-400">R / A</td>
+                                    <td class="p-3 text-center font-bold text-amber-400">C</td>
+                                    <td class="p-3 text-center font-bold text-amber-400">C</td>
+                                    <td class="p-3 text-center font-bold text-blue-400">A</td>
+                                </tr>
+                                <tr>
+                                    <td class="p-3 font-medium text-white">Grafické rozhraní & Animace canvasu</td>
+                                    <td class="p-3 text-center font-bold text-amber-400">I</td>
+                                    <td class="p-3 text-center font-bold text-emerald-400">R / A</td>
+                                    <td class="p-3 text-center font-bold text-amber-400">C</td>
+                                    <td class="p-3 text-center font-bold text-amber-400">I</td>
+                                </tr>
+                                <tr>
+                                    <td class="p-3 font-medium text-white">Implementace statistik & výpočtů</td>
+                                    <td class="p-3 text-center font-bold text-amber-400">C</td>
+                                    <td class="p-3 text-center font-bold text-emerald-400">R</td>
+                                    <td class="p-3 text-center font-bold text-emerald-400">A</td>
+                                    <td class="p-3 text-center font-bold text-amber-400">I</td>
+                                </tr>
+                                <tr>
+                                    <td class="p-3 font-medium text-white">Tvorba dokumentace a README</td>
+                                    <td class="p-3 text-center font-bold text-amber-400">C</td>
+                                    <td class="p-3 text-center font-bold text-amber-400">C</td>
+                                    <td class="p-3 text-center font-bold text-amber-400">C</td>
+                                    <td class="p-3 text-center font-bold text-emerald-400">R / A</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="text-[11px] text-gray-500 flex gap-4 pt-1">
+                        <span><b class="text-emerald-400">R</b> - Responsible (Odpovědný za provedení)</span>
+                        <span><b class="text-blue-400">A</b> - Accountable (Konečná schvalovací odpovědnost)</span>
+                        <span><b class="text-amber-400">C</b> - Consulted (Konzultováno)</span>
+                        <span><b class="text-gray-400">I</b> - Informed (Informován)</span>
+                    </div>
+                </section>
+
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-borderbg bg-cardbg/50 py-4 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-gray-500">
+            Školní projekt 3IT KYME • Téma: Simulace výtahového algoritmu • Všechna data lokálně simulována
+        </div>
+    </footer>
+
+    <!-- SIMULATION & RENDER ENGINE SCRIPT -->
+    <script>
+        // CONFIGURATION PARAMETERS matching assignment specs exactly
+        const CONFIG = {
+            FLOORS: 8,              // 0 to 7
+            FLOOR_HEIGHT: 3.5,      // meters per floor
+            ELEVATOR_SPEED: 2.0,    // m/s
+            ACCELERATION: 1.0,      // m/s^2
+            CAPACITY: 6,            // max people in cab
+            DOOR_OPEN_TIME: 1.5,    // seconds to open/close
+            DEST_VISIBLE: false,     // Elevator only knows UP/DOWN on floors
+            TOTAL_PASSENGERS: 400
+        };
+
+        // Pseudo-random deterministic seed helper
+        function seededRandom(seed) {
+            let x = Math.sin(seed++) * 10000;
+            return x - Math.floor(x);
+        }
+
+        // Generate full dataset simulating "Běžný den ve škole" (400 passengers)
+        function generateSchoolDayDataset() {
+            const passengers = [];
+            let idCounter = 1;
+            let seed = 2026;
+
+            // Phase 1: Morning Rush (0 to 1800s / 30 mins) -> 260 people entering on Floor 0 heading up
+            for (let i = 0; i < 260; i++) {
+                let r1 = seededRandom(seed++);
+                let r2 = seededRandom(seed++);
+                const arrival = Math.floor(Math.pow(r1, 1.2) * 1800);
+                const dest = Math.floor(r2 * 7) + 1; // floors 1..7
+                passengers.push({
+                    id: `P${idCounter++}`,
+                    from: 0,
+                    to: dest,
+                    arrival: arrival,
+                    status: 'future',
+                    boardTime: null,
+                    exitTime: null
+                });
+            }
+
+            // Phase 2: Inter-floor Daytime traffic (1800s to 3600s) -> 80 people moving between floors
+            for (let i = 0; i < 80; i++) {
+                let r1 = seededRandom(seed++);
+                let r2 = seededRandom(seed++);
+                let r3 = seededRandom(seed++);
+                const arrival = 1800 + Math.floor(r1 * 1800);
+                let from = Math.floor(r2 * CONFIG.FLOORS);
+                let to = Math.floor(r3 * CONFIG.FLOORS);
+                while (from === to) {
+                    to = (to + 1) % CONFIG.FLOORS;
+                }
+                passengers.push({
+                    id: `P${idCounter++}`,
+                    from: from,
+                    to: to,
+                    arrival: arrival,
+                    status: 'future',
+                    boardTime: null,
+                    exitTime: null
+                });
+            }
+
+            // Phase 3: Afternoon Exit Rush (3600s to 5400s) -> 60 people leaving floors 1..7 down to 0
+            for (let i = 0; i < 60; i++) {
+                let r1 = seededRandom(seed++);
+                let r2 = seededRandom(seed++);
+                const arrival = 3600 + Math.floor(r1 * 1800);
+                const from = Math.floor(r2 * 7) + 1; // 1..7
+                passengers.push({
+                    id: `P${idCounter++}`,
+                    from: from,
+                    to: 0,
+                    arrival: arrival,
+                    status: 'future',
+                    boardTime: null,
+                    exitTime: null
+                });
+            }
+
+            return passengers.sort((a, b) => a.arrival - b.arrival);
+        }
+
+        // Global Simulation State
+        let rawPassengers = generateSchoolDayDataset();
+        let simTime = 0; // seconds
+        let isRunning = false;
+        let speedMultiplier = 5;
+        let animFrameId = null;
+        let lastTimestamp = null;
+
+        // Elevator Cab State
+        let cab = {
+            currentY: 0,            // meters from ground (0 to 7*3.5 = 24.5m)
+            targetY: 0,
+            floor: 0,               // discrete or rounded floor
+            direction: 0,           // 1 = UP, -1 = DOWN, 0 = IDLE
+            doorState: 'CLOSED',    // CLOSED, OPENING, OPEN, CLOSING
+            doorTimer: 0,
+            passengers: [],         // Inside objects
+            totalDistanceMeters: 0,
+            floorPassesCount: 0,
+            stopsCount: 0,
+            lastFloorPassed: 0
+        };
+
+        // Floor queues [0..7]
+        let floorQueues = Array.from({ length: CONFIG.FLOORS }, () => []);
+        let simLogs = [];
+
+        // ADVANCED SCAN / LOOK ENGINE LOGIC
+        function evaluateElevatorLogic() {
+            // Door transition state handling
+            if (cab.doorState === 'OPENING') {
+                cab.doorTimer += 0.2;
+                if (cab.doorTimer >= CONFIG.DOOR_OPEN_TIME) {
+                    cab.doorState = 'OPEN';
+                    cab.doorTimer = 0;
+                    logEvent(`Dveře plně otevřeny v patře ${cab.floor}.`, 'info');
+                }
+                return;
+            }
+
+            if (cab.doorState === 'OPEN') {
+                // 1. Exit passengers whose destination is cab.floor
+                for (let i = cab.passengers.length - 1; i >= 0; i--) {
+                    let p = cab.passengers[i];
+                    if (p.to === cab.floor) {
+                        p.status = 'delivered';
+                        p.exitTime = simTime;
+                        cab.passengers.splice(i, 1);
+                        logEvent(`Vystoupil ${p.id} v patře ${cab.floor}.`, 'success');
+                    }
+                }
+
+                // 2. Board waiting passengers who request same direction
+                let waitingAtFloor = floorQueues[cab.floor];
+                if (waitingAtFloor.length > 0) {
+                    for (let i = waitingAtFloor.length - 1; i >= 0; i--) {
+                        if (cab.passengers.length >= CONFIG.CAPACITY) break;
+
+                        let p = waitingAtFloor[i];
+                        let passengerDir = p.to > cab.floor ? 1 : -1;
+
+                        if (cab.passengers.length === 0 || cab.direction === 0 || passengerDir === cab.direction) {
+                            if (cab.direction === 0) {
+                                cab.direction = passengerDir;
+                            }
+                            p.status = 'riding';
+                            p.boardTime = simTime;
+                            cab.passengers.push(p);
+                            waitingAtFloor.splice(i, 1);
+                            logEvent(`Nastoupil ${p.id} v patře ${cab.floor} (Cíl: ${p.to}).`, 'info');
+                        }
+                    }
+                }
+
+                cab.doorTimer += 0.2;
+                if (cab.doorTimer >= 1.0) {
+                    cab.doorState = 'CLOSING';
+                    cab.doorTimer = 0;
+                    logEvent(`Zavírání dveří v patře ${cab.floor}...`, 'info');
+                }
+                return;
+            }
+
+            if (cab.doorState === 'CLOSING') {
+                cab.doorTimer += 0.2;
+                if (cab.doorTimer >= CONFIG.DOOR_OPEN_TIME) {
+                    cab.doorState = 'CLOSED';
+                    cab.doorTimer = 0;
+                }
+                return;
+            }
+
+            // DOORS ARE CLOSED -> EVALUATE STOP / MOVEMENT
+            if (cab.doorState === 'CLOSED') {
+                let shouldStopAtCurrent = false;
+
+                // Stop if someone in cab wants to exit here
+                if (cab.passengers.some(p => p.to === cab.floor)) {
+                    shouldStopAtCurrent = true;
+                }
+
+                // Stop if queue waiting matches direction
+                let currentQueue = floorQueues[cab.floor];
+                if (currentQueue.length > 0 && cab.passengers.length < CONFIG.CAPACITY) {
+                    if (cab.direction === 0 || currentQueue.some(p => (p.to > cab.floor ? 1 : -1) === cab.direction)) {
+                        shouldStopAtCurrent = true;
+                    }
+                }
+
+                if (shouldStopAtCurrent) {
+                    cab.doorState = 'OPENING';
+                    cab.doorTimer = 0;
+                    cab.stopsCount++;
+                    logEvent(`Zastavení a otevírání dveří v patře ${cab.floor}.`, 'info');
+                    return;
+                }
+
+                // LOOK/SCAN Direction Evaluation
+                let hasRequestsAbove = false;
+                let hasRequestsBelow = false;
+
+                for (let p of cab.passengers) {
+                    if (p.to > cab.floor) hasRequestsAbove = true;
+                    if (p.to < cab.floor) hasRequestsBelow = true;
+                }
+
+                for (let f = 0; f < CONFIG.FLOORS; f++) {
+                    if (floorQueues[f].length > 0) {
+                        if (f > cab.floor) hasRequestsAbove = true;
+                        if (f < cab.floor) hasRequestsBelow = true;
+                    }
+                }
+
+                if (cab.direction === 1) {
+                    if (!hasRequestsAbove) {
+                        cab.direction = hasRequestsBelow ? -1 : 0;
+                    }
+                } else if (cab.direction === -1) {
+                    if (!hasRequestsBelow) {
+                        cab.direction = hasRequestsAbove ? 1 : 0;
+                    }
+                } else {
+                    if (hasRequestsAbove) cab.direction = 1;
+                    else if (hasRequestsBelow) cab.direction = -1;
+                    else {
+                        // Return home to ground floor 0 when idle
+                        if (cab.floor > 0 && cab.passengers.length === 0) {
+                            cab.direction = -1;
+                        }
+                    }
+                }
+
+                // Physical Movement Tick
+                if (cab.direction !== 0) {
+                    let moveDelta = cab.direction * (CONFIG.ELEVATOR_SPEED * 0.2);
+                    let newY = cab.currentY + moveDelta;
+                    let maxY = (CONFIG.FLOORS - 1) * CONFIG.FLOOR_HEIGHT;
+
+                    if (newY < 0) { newY = 0; cab.direction = 0; }
+                    if (newY > maxY) { newY = maxY; cab.direction = 0; }
+
+                    let distanceMoved = Math.abs(newY - cab.currentY);
+                    cab.totalDistanceMeters += distanceMoved;
+                    cab.currentY = newY;
+
+                    let calculatedFloor = Math.round(cab.currentY / CONFIG.FLOOR_HEIGHT);
+                    if (calculatedFloor !== cab.lastFloorPassed) {
+                        cab.floorPassesCount++;
+                        cab.lastFloorPassed = calculatedFloor;
+                    }
+                    cab.floor = calculatedFloor;
+                }
+            }
+        }
+
+        function simulationStep(deltaSeconds = 1) {
+            for (let p of rawPassengers) {
+                if (p.status === 'future' && p.arrival <= simTime) {
+                    p.status = 'waiting';
+                    floorQueues[p.from].push(p);
+                    logEvent(`Přišel ${p.id} do patra ${p.from} (chce do ${p.to}).`, 'neutral');
+                }
+            }
+
+            evaluateElevatorLogic();
+            simTime += 0.2;
+            updateUIStats();
+            renderBuildingCanvas();
+        }
+
+        // CANVAS GRAPHICS ENGINE
+        const canvas = document.getElementById('building-canvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        function renderBuildingCanvas() {
+            if (!canvas.width || !canvas.height) resizeCanvas();
+
+            const w = canvas.width;
+            const h = canvas.height;
+
+            ctx.fillStyle = '#030712';
+            ctx.fillRect(0, 0, w, h);
+
+            const floorCount = CONFIG.FLOORS;
+            const padding = 20;
+            const shaftWidth = 90;
+            const shaftX = padding + 100;
+            const floorHeightPx = (h - padding * 2) / floorCount;
+
+            for (let f = 0; f < floorCount; f++) {
+                let y = h - padding - (f + 1) * floorHeightPx;
+
+                ctx.fillStyle = f % 2 === 0 ? '#111827' : '#0f172a';
+                ctx.fillRect(padding, y, w - padding * 2, floorHeightPx);
+
+                ctx.strokeStyle = '#1f293d';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(padding, y + floorHeightPx);
+                ctx.lineTo(w - padding, y + floorHeightPx);
+                ctx.stroke();
+
+                ctx.fillStyle = '#9ca3af';
+                ctx.font = 'bold 12px Inter, sans-serif';
+                ctx.fillText(`Patro ${f}`, padding + 10, y + floorHeightPx / 2 + 4);
+
+                let queue = floorQueues[f];
+                let startX = shaftX + shaftWidth + 20;
+                let passengerSpacing = 16;
+
+                for (let i = 0; i < queue.length; i++) {
+                    let px = startX + (i % 14) * passengerSpacing;
+                    let py = y + floorHeightPx - 18 - (Math.floor(i / 14) * 22);
+
+                    let p = queue[i];
+                    let isGoingUp = p.to > f;
+
+                    ctx.fillStyle = isGoingUp ? '#3b82f6' : '#f59e0b';
+                    ctx.beginPath();
+                    ctx.arc(px, py - 6, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillRect(px - 1.5, py - 2, 3, 10);
+                }
+
+                if (queue.length > 0) {
+                    ctx.fillStyle = '#ef4444';
+                    ctx.beginPath();
+                    ctx.arc(padding + 75, y + floorHeightPx / 2, 10, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 10px Inter, sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(queue.length, padding + 75, y + floorHeightPx / 2 + 3);
+                    ctx.textAlign = 'left';
+                }
+            }
+
+            ctx.strokeStyle = '#374151';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(shaftX, padding, shaftWidth, h - padding * 2);
+
+            let totalMeters = (CONFIG.FLOORS - 1) * CONFIG.FLOOR_HEIGHT;
+            let ratio = cab.currentY / totalMeters;
+            let totalTravelPx = (floorCount - 1) * floorHeightPx;
+            let cabYPx = (h - padding - floorHeightPx) - (ratio * totalTravelPx);
+
+            ctx.fillStyle = cab.doorState === 'OPEN' ? '#15803d' : '#1e293b';
+            ctx.strokeStyle = '#22c55e';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(shaftX + 4, cabYPx + 4, shaftWidth - 8, floorHeightPx - 8, 8);
+            ctx.fill();
+            ctx.stroke();
+
+            if (cab.doorState !== 'CLOSED') {
+                ctx.fillStyle = '#f59e0b';
+                ctx.fillRect(shaftX + 6, cabYPx + 6, 4, floorHeightPx - 12);
+                ctx.fillRect(shaftX + shaftWidth - 10, cabYPx + 6, 4, floorHeightPx - 12);
+            }
+
+            if (cab.direction !== 0) {
+                ctx.fillStyle = '#22c55e';
+                ctx.font = 'bold 12px Inter, sans-serif';
+                let dirSymbol = cab.direction === 1 ? '▲' : '▼';
+                ctx.fillText(dirSymbol, shaftX + shaftWidth / 2 - 4, cabYPx + 16);
+            }
+
+            let cabCount = cab.passengers.length;
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 11px Inter, sans-serif';
+            ctx.fillText(`👥 ${cabCount}/6`, shaftX + 16, cabYPx + floorHeightPx - 12);
+        }
+
+        // LOGGING & TELEMETRY
+        function logEvent(msg, type = 'neutral') {
+            const timeStr = formatTime(simTime);
+            simLogs.unshift({ timeStr, msg, type });
+            if (simLogs.length > 50) simLogs.pop();
+
+            const container = document.getElementById('sim-logs-container');
+            if (!container) return;
+
+            let typeColor = 'text-gray-400';
+            if (type === 'info') typeColor = 'text-blue-400';
+            if (type === 'success') typeColor = 'text-emerald-400';
+            if (type === 'warning') typeColor = 'text-amber-400';
+
+            container.innerHTML = simLogs.map(l => 
+                `<div><span class="text-gray-600">[${l.timeStr}]</span> <span class="${typeColor}">${l.msg}</span></div>`
+            ).join('');
+        }
+
+        function clearLogs() {
+            simLogs = [];
+            document.getElementById('sim-logs-container').innerHTML = '';
+        }
+
+        function formatTime(secs) {
+            let m = Math.floor(secs / 60);
+            let s = (secs % 60).toFixed(1);
+            return `${m.toString().padStart(2, '0')}:${s.padStart(4, '0')}`;
+        }
+
+        function updateUIStats() {
+            document.getElementById('stat-sim-time').innerText = formatTime(simTime);
+
+            let deliveredCount = rawPassengers.filter(p => p.status === 'delivered').length;
+            document.getElementById('stat-delivered').innerText = deliveredCount;
+            let progressPercent = ((deliveredCount / CONFIG.TOTAL_PASSENGERS) * 100).toFixed(1);
+            document.getElementById('stat-progress-bar').style.width = `${progressPercent}%`;
+
+            let deliveredPass = rawPassengers.filter(p => p.status === 'delivered');
+            if (deliveredPass.length > 0) {
+                let totalWait = deliveredPass.reduce((sum, p) => sum + (p.boardTime - p.arrival), 0);
+                let totalRide = deliveredPass.reduce((sum, p) => sum + (p.exitTime - p.boardTime), 0);
+                let maxWait = Math.max(...deliveredPass.map(p => p.boardTime - p.arrival));
+
+                document.getElementById('stat-avg-wait').innerText = `${(totalWait / deliveredPass.length).toFixed(1)}s`;
+                document.getElementById('stat-max-wait').innerText = `${maxWait.toFixed(1)}s`;
+                document.getElementById('stat-avg-ride').innerText = `${(totalRide / deliveredPass.length).toFixed(1)}s`;
+                document.getElementById('stat-avg-total').innerText = `${((totalWait + totalRide) / deliveredPass.length).toFixed(1)}s`;
+            }
+
+            document.getElementById('stat-distance').innerText = `${cab.totalDistanceMeters.toFixed(1)} m`;
+            document.getElementById('stat-floor-passes').innerText = cab.floorPassesCount;
+            document.getElementById('stat-stops').innerText = cab.stopsCount;
+
+            let stateText = cab.direction === 1 ? 'Jede NAHORU' : cab.direction === -1 ? 'Jede DOLŮ' : 'Stojí (IDLE)';
+            document.getElementById('stat-elevator-state').innerText = stateText;
+
+            document.getElementById('cab-floor-display').innerText = `Patro ${cab.floor}`;
+            document.getElementById('cab-height-display').innerText = `(${cab.currentY.toFixed(1)}m)`;
+            document.getElementById('cab-passengers-count').innerText = cab.passengers.length;
+
+            let badge = document.getElementById('cab-direction-badge');
+            badge.innerText = cab.direction === 1 ? '▲ NAHORU' : cab.direction === -1 ? '▼ DOLŮ' : '● STOJÍ';
+            badge.className = `px-2.5 py-0.5 rounded-full text-xs font-bold border ${
+                cab.direction === 1 ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' :
+                cab.direction === -1 ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' :
+                'bg-gray-800 text-gray-300 border-gray-700'
+            }`;
+
+            document.getElementById('cab-doors-status').innerText = 
+                cab.doorState === 'OPEN' ? 'Otevřeno' :
+                cab.doorState === 'OPENING' ? 'Otevírá se...' :
+                cab.doorState === 'CLOSING' ? 'Zavírá se...' : 'Zavřeno';
+
+            const cabListEl = document.getElementById('cab-passenger-list');
+            if (cab.passengers.length === 0) {
+                cabListEl.innerHTML = `<span class="text-xs text-gray-600 italic mx-auto">Kabina je prázdná</span>`;
+            } else {
+                cabListEl.innerHTML = cab.passengers.map(p => 
+                    `<span class="text-[11px] px-2 py-1 rounded-lg bg-brand-500/20 text-brand-300 border border-brand-500/30 font-mono">
+                        ${p.id} ➔ P${p.to}
+                    </span>`
+                ).join('');
+            }
+
+            renderPassengerTable();
+        }
+
+        // PASSENGER DATABASE TABLE
+        function renderPassengerTable() {
+            const tbody = document.getElementById('passenger-table-body');
+            if (!tbody) return;
+
+            const searchVal = (document.getElementById('passenger-search')?.value || '').toLowerCase();
+            const filterVal = document.getElementById('passenger-status-filter')?.value || 'all';
+
+            let filtered = rawPassengers.filter(p => {
+                if (searchVal && !p.id.toLowerCase().includes(searchVal)) return false;
+                if (filterVal !== 'all' && p.status !== filterVal) return false;
+                return true;
+            });
+
+            let rows = filtered.slice(0, 100).map(p => {
+                let waitSecs = p.boardTime !== null ? (p.boardTime - p.arrival).toFixed(1) + 's' : (p.status === 'waiting' ? (simTime - p.arrival).toFixed(1) + 's' : '-');
+                let rideSecs = p.exitTime !== null ? (p.exitTime - p.boardTime).toFixed(1) + 's' : (p.status === 'riding' ? (simTime - p.boardTime).toFixed(1) + 's' : '-');
+                let totalSecs = p.exitTime !== null ? (p.exitTime - p.arrival).toFixed(1) + 's' : '-';
+
+                let statusBadge = 
+                    p.status === 'delivered' ? '<span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Odbaveno</span>' :
+                    p.status === 'riding' ? '<span class="px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">V kabině</span>' :
+                    p.status === 'waiting' ? '<span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">Čeká</span>' :
+                    '<span class="px-2 py-0.5 rounded bg-gray-800 text-gray-500">Nepřišel</span>';
+
+                let dirArrow = p.to > p.from ? '▲' : '▼';
+
+                return `<tr class="hover:bg-gray-900/50 transition">
+                    <td class="p-3 font-bold text-white">${p.id}</td>
+                    <td class="p-3 text-gray-400">${formatTime(p.arrival)}</td>
+                    <td class="p-3 text-gray-300">Patro ${p.from}</td>
+                    <td class="p-3 text-gray-300">Patro ${p.to}</td>
+                    <td class="p-3 font-bold ${p.to > p.from ? 'text-blue-400' : 'text-amber-400'}">${dirArrow}</td>
+                    <td class="p-3">${statusBadge}</td>
+                    <td class="p-3 text-amber-400">${waitSecs}</td>
+                    <td class="p-3 text-blue-400">${rideSecs}</td>
+                    <td class="p-3 font-bold text-white">${totalSecs}</td>
+                </tr>`;
+            });
+
+            tbody.innerHTML = rows.join('');
+        }
+
+        function filterPassengerTable() {
+            renderPassengerTable();
+        }
+
+        // CONTROL LOOP MANAGEMENT
+        function gameLoop(timestamp) {
+            if (!lastTimestamp) lastTimestamp = timestamp;
+
+            if (isRunning) {
+                let ticksToRun = Math.max(1, Math.floor(speedMultiplier));
+                for (let i = 0; i < ticksToRun; i++) {
+                    simulationStep(0.2);
+                }
+            }
+
+            lastTimestamp = timestamp;
+            animFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        function togglePlayPause() {
+            isRunning = !isRunning;
+            const btn = document.getElementById('btn-play');
+            if (isRunning) {
+                btn.innerHTML = `<i data-lucide="pause" class="w-4 h-4 fill-current"></i> Pauza`;
+                btn.className = "px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-semibold text-sm transition flex items-center gap-2 shadow-lg shadow-amber-600/30";
+            } else {
+                btn.innerHTML = `<i data-lucide="play" class="w-4 h-4 fill-current"></i> Spustit`;
+                btn.className = "px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm transition flex items-center gap-2 shadow-lg shadow-brand-600/30";
+            }
+            lucide.createIcons();
+        }
+
+        function resetSimulation() {
+            isRunning = false;
+            simTime = 0;
+            rawPassengers = generateSchoolDayDataset();
+            floorQueues = Array.from({ length: CONFIG.FLOORS }, () => []);
+            cab = {
+                currentY: 0,
+                targetY: 0,
+                floor: 0,
+                direction: 0,
+                doorState: 'CLOSED',
+                doorTimer: 0,
+                passengers: [],
+                totalDistanceMeters: 0,
+                floorPassesCount: 0,
+                stopsCount: 0,
+                lastFloorPassed: 0
+            };
+
+            const btn = document.getElementById('btn-play');
+            btn.innerHTML = `<i data-lucide="play" class="w-4 h-4 fill-current"></i> Spustit`;
+            btn.className = "px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm transition flex items-center gap-2 shadow-lg shadow-brand-600/30";
+
+            clearLogs();
+            logEvent("Simulace byla restartována do počátečního stavu.", "warning");
+            updateUIStats();
+            renderBuildingCanvas();
+            lucide.createIcons();
+        }
+
+        function stepSimulation() {
+            simulationStep(1.0);
+        }
+
+        function updateSpeedFromSlider(val) {
+            speedMultiplier = parseInt(val, 10);
+            document.getElementById('speed-label').innerText = `${speedMultiplier}x`;
+        }
+
+        function switchTab(tabId) {
+            ['sim', 'passengers', 'doc'].forEach(id => {
+                document.getElementById(`tab-${id}`).classList.add('hidden');
+                let btn = document.getElementById(`tab-btn-${id}`);
+                btn.className = "px-3 py-1.5 rounded-md text-xs font-semibold text-gray-400 hover:text-white transition flex items-center gap-2";
+            });
+
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+            let activeBtn = document.getElementById(`tab-btn-${tabId}`);
+            activeBtn.className = "px-3 py-1.5 rounded-md text-xs font-semibold transition flex items-center gap-2 bg-brand-600 text-white shadow-sm";
+
+            if (tabId === 'sim') {
+                setTimeout(resizeCanvas, 50);
+            }
+        }
+
+        window.onload = function() {
+            lucide.createIcons();
+            resizeCanvas();
+            updateUIStats();
+            renderBuildingCanvas();
+            animFrameId = requestAnimationFrame(gameLoop);
+        };
+    </script>
+</body>
+</html>
