@@ -38,6 +38,5 @@ Vzhledem k parametru `destVisible: false` (výtah na chodbách zná pouze požad
 ## 💻 Jak simulaci spustit
 
 1. Klonujte nebo stáhněte tento repozitář.
-2. Otevřete soubor `vytah.html` (nebo `index.html`) v libovolném webovém prohlížeči.
-3. Načtěte přiložený soubor zadání `zadani-bezny-den-ve-skole-B746-8C6D.json` (tlačítkem nebo přetažením drag-and-drop).
-4. Klikněte na tlačítko **▶ Spustit**.
+2. Otevřete soubor `index.html` v libovolném webovém prohlížeči.
+3. Klikněte na tlačítko **▶ Spustit**.
