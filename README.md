@@ -20,18 +20,18 @@ Vzhledem k parametru `destVisible: false` (výtah na chodbách zná pouze požad
 
 ---
 
-## 📋 Matice odpovědnosti (Kdo co dělal)
+## 👥 Matice odpovědnosti (Kdo co dělal)
 
-| Člen týmu | Analýza dat a zadání | Návrh algoritmu (SCAN/LOOK) | Implementace v JS (`vytah.html`) | Testování, kontrola metrů & statistik | Dokumentace |
-| :--- | :---: | :---: | :---: | :---: | :---: |
-| **David Wenzel** | **R / A** | **R / A** | **R / A** | **R** | **R / A** |
-| **Alex Marek Levandovský** | **C** | **C** | **I** | **R / A** | **R** |
+### David Wenzel
+- **Počáteční analýza zadání a architektura:** Prostudování datové sady JSON, návrh strategie řešení a výběr vhodného algoritmu (SCAN/LOOK).
+- **Implementace algoritmu:** Napsání hlavní řídicí logiky ve funkcích `rozhodni()` a `nastup()` v souboru `vytah.html`.
+- **Optimalizace směrového filtrování:** Návrh pravidla pro správný nástup lidí podle směru tlačítka (reakce na omezení `destVisible: false`).
+- **Příprava dokumentace a kódu:** Finální úprava skriptů, kontrola funkčnosti a vytvoření `README.md`.
 
-*Vysvětlivky (RACI):*
-- **R (Responsible):** Osoba, která danou část vypracovala / realizovala.
-- **A (Accountable):** Osoba nesoucí konečnou odpovědnost za správnost.
-- **C (Consulted):** Osoba, která poskytla konzultaci nebo zkoumala chování (např. analýza odpolední špičky a sběr statistik ujeté dráhy).
-- **I (Informed):** Osoba informovaná o průběhu a změnách v kódu.
+### Alex Marek Levandovský
+- **Testování a analýza datových fází:** Sledování průběhu simulace v jednotlivých časových úsecích (ranní nával z přízemí vs. odpolední odliv z pater) a ověřování chování výtahu.
+- **Měření efektivity a ujeté dráhy:** Porovnávání naměřených výsledků (ujeté metry, průměrné čekání lidí, nejdelší čas čekání) před a po nasazení nového algoritmu.
+- **Validace a kontrola hraničních stavů:** Testování vytížení kapacity kabiny (max. 6 osob) a kontrola plynulosti otáčení výtahu v nejvyšším požadovaném patře.
 
 ---
 
