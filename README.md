@@ -1,42 +1,40 @@
-# 3IT KYME – Simulace výtahu (Běžný den ve škole)
+# 🛗 Simulátor výtahu — Školní projekt
 
-Tento projekt řeší školní úlohu simulace a optimalizace řídicího algoritmu výtahu v 8patrové budově na základě zadání `zadani-bezny-den-ve-skole-B746-8C6D.json` (400 lidí).
+Projekt optimalizace řízení výtahu, který dosáhl celkového zrychlení **84,4 %** oproti původnímu FIFO algoritmu.
 
-## 🚀 O projektu a cíle
-Hlavním cílem bylo nahradit původní hloupý „panelákový“ výtah efektivnějším řídicím algoritmem tak, aby:
-- **Lidé nečekali tak dlouho** (minimalizace průměrné i maximální doby čekání a jízdy).
-- **Výtah ujel výrazně méně vzdálenosti v metrech** (úspora energie).
+## 👥 Autorský tým
 
----
+* **David Wenzel** — Program, zpracování
+* **Alex Marek Levandovský** — Kontrola, dokumentace
 
-## 🧠 Popis algoritmu (SCAN / LOOK)
+## 📁 Soubory projektu
 
-Vzhledem k parametru `destVisible: false` (výtah na chodbách zná pouze požadovaný směr jízdy, nikoliv cílové patro) byl implementován **SCAN / LOOK algoritmus s prioritizací směrů**:
+* `index.html` — Samostatná webová aplikace s GUI simulátorem a řídicím algoritmem.
+* `zadani-bezny-den-ve-skole-B746-8C6D.json` — Vstupní datová sada (400 cestujících, 8 pater, hash: `B746-8C6D`).
 
-1. **Směrová plynulost:** Výtah projíždí budovu v ucelených cyklech (nahoru / dolů). Cestou zastavuje v patrech, kde vykládá cestující nebo nakládá čekající, kteří chtějí jet stejným směrem.
-2. **Selektivní nástup (`nastup` logika):** Do kabiny nastupují pouze lidé jedoucí ve směru aktuální jízdy výtahu (pokud je v kabině kapacita).
-3. **Dynamické otáčení:** Výtah nejezdí zbytečně do nejvyššího či nejnižšího patra, pokud tam nikdo nechce – otáčí se na nejvzdálenějším aktivním požadavku.
-4. **Adaptivní návrat:** Při nečinnosti v ranní fázi preferuje čekání v přízemí (patro 0), kde vzniká největší nával.
+## 🚀 Návod ke spuštění
 
----
+1. Otevřete soubor `index.html` v libovolném webovém prohlížeči.
+2. Nahrajte zadaný soubor `zadani-bezny-den-ve-skole-B746-8C6D.json` (tlačítkem nebo přetažením).
+3. Výpočet a simulace se spustí automaticky.
 
-## 👥 Matice odpovědnosti (Kdo co dělal)
+## 📊 Porovnání výkonu: Původní vs. Nový algoritmus
 
-### David Wenzel
-- **Počáteční analýza zadání a architektura:** Prostudování datové sady JSON, návrh strategie řešení a výběr vhodného algoritmu (SCAN/LOOK).
-- **Implementace algoritmu:** Napsání hlavní řídicí logiky ve funkcích `rozhodni()` a `nastup()` v souboru `vytah.html`.
-- **Optimalizace směrového filtrování:** Návrh pravidla pro správný nástup lidí podle směru tlačítka (reakce na omezení `destVisible: false`).
-- **Příprava dokumentace a kódu:** Finální úprava skriptů, kontrola funkčnosti a vytvoření `README.md`.
+**Testováno na scénáři:** *Běžný den ve škole* (400 lidí, 8 pater, kapacita 6 osob, otisk `B746-8C6D`).
 
-### Alex Marek Levandovský
-- **Testování a analýza datových fází:** Sledování průběhu simulace v jednotlivých časových úsecích (ranní nával z přízemí vs. odpolední odliv z pater) a ověřování chování výtahu.
-- **Měření efektivity a ujeté dráhy:** Porovnávání naměřených výsledků (ujeté metry, průměrné čekání lidí, nejdelší čas čekání) před a po nasazení nového algoritmu.
-- **Validace a kontrola hraničních stavů:** Testování vytížení kapacity kabiny (max. 6 osob) a kontrola plynulosti otáčení výtahu v nejvyšším požadovaném patře.
+### Srovnání celkového času odbavení
 
----
+* Původní stav (FIFO): `████████████████████████████` 1 262 s (~21,0 min)
+* Nové řízení (LOOK): `████` 196,8 s (~3,2 min) [-84,4 %]
 
-## 💻 Jak simulaci spustit
+### Přehled naměřených metrik
 
-1. Klonujte nebo stáhněte tento repozitář.
-2. Otevřete soubor `index.html` v libovolném webovém prohlížeči.
-3. Klikněte na tlačítko **▶ Spustit**.
+| Sledovaná metrika | Původní řízení (FIFO) | Optimalizovaný LOOK | Dosažený rozdíl |
+| :--- | :---: | :---: | :---: |
+| **Průměrně celkem (hlavní parametr)** | **1 262,1 s (~21 min)** | **196,8 s (~3,2 min)** | **⚡ Zrychlení o 84,4 %** |
+| Průměrná doba čekání | 1 250,7 s | 176,2 s | o 85,9 % kratší čekání |
+| Průměrná jízda | 11,4 s | 20,5 s | Plynulý sběr po trase |
+| Nejdelší čekání (nejhorší případ) | 3 493,6 s (~58 min!) | 852,2 s (~14 min) | Zkráceno o 44 minut |
+| Celková ujetá dráha výtahu | 2 922 m | 2 175 m | Úspora 747 metrů |
+| Rozvezeno do 600 s | 27 lidí | 51 lidí | +88 % větší propustnost |
+| Celkem rozvezeno | 400 z 400 (100 %) | 400 z 400 (100 %) | Splněno bez chyb |
