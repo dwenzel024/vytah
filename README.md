@@ -1,40 +1,38 @@
-# 🛗 Simulátor výtahu — Školní projekt
+# Simulace řízení výtahu (3IT KYME)
 
-Projekt optimalizace řízení výtahu, který dosáhl celkového zrychlení **84,4 %** oproti původnímu FIFO algoritmu.
+Projekt zaměřený na optimalizaci plynulosti vertikální dopravy v budově pomocí algoritmus SCAN/LOOK s ochranou proti hladovění.
 
-## 👥 Autorský tým
+## 🛠️ Zpracování
 
-* **David Wenzel** — Program, zpracování
-* **Alex Marek Levandovský** — Kontrola, dokumentace
+* **David Wenzel** — Vývoj algoritmu & logika řízení
+* **Alex Marek Levandovský** — Testování & dokumentace
 
-## 📁 Soubory projektu
+## 📂 Struktura
 
-* `index.html` — Samostatná webová aplikace s GUI simulátorem a řídicím algoritmem.
-* `zadani-bezny-den-ve-skole-B746-8C6D.json` — Vstupní datová sada (400 cestujících, 8 pater, hash: `B746-8C6D`).
+* `vytah.html` — Samostatná aplikace obsahující vizualizaci, simulátor a řídicí algoritmus.
+* `zadani-bezny-den-ve-skole-B746-8C6D.json` — Vstupní datová sada pro simulaci (400 lidí, 8 pater).
 
-## 🚀 Návod ke spuštění
+## 💻 Spuštění
 
-1. Otevřete soubor `index.html` v libovolném webovém prohlížeči.
-2. Nahrajte zadaný soubor `zadani-bezny-den-ve-skole-B746-8C6D.json` (tlačítkem nebo přetažením).
-3. Výpočet a simulace se spustí automaticky.
+1. Otevřete soubor `vytah.html` v prohlížeči.
+2. Vložte soubor se zadáním (`.json`).
+3. Spusťte simulaci tlačítkem **Spustit**.
 
-## 📊 Porovnání výkonu: Původní vs. Nový algoritmus
+## 📈 Zhodnocení výsledků
 
-**Testováno na scénáři:** *Běžný den ve škole* (400 lidí, 8 pater, kapacita 6 osob, otisk `B746-8C6D`).
+Optimalizace výrazně snížila celkovou dobu čekání cestujících a zvýšila efektivitu provozu.
 
-### Srovnání celkového času odbavení
+### Doba zpracování (celkový průměr)
 
-* Původní stav (FIFO): `████████████████████████████` 1 262 s (~21,0 min)
-* Nové řízení (LOOK): `████` 196,8 s (~3,2 min) [-84,4 %]
+* **Původní systém (FIFO):** `[====================]` 1 262,1 s
+* **Náš algoritmus (LOOK):**  `[===]` 196,8 s *(Úspora času: ~84,4 %)*
 
-### Přehled naměřených metrik
+### Přehled klíčových ukazatelů
 
-| Sledovaná metrika | Původní řízení (FIFO) | Optimalizovaný LOOK | Dosažený rozdíl |
+| Parametr | Původní verze | Naše řešení | Zlepšení |
 | :--- | :---: | :---: | :---: |
-| **Průměrně celkem (hlavní parametr)** | **1 262,1 s (~21 min)** | **196,8 s (~3,2 min)** | **⚡ Zrychlení o 84,4 %** |
-| Průměrná doba čekání | 1 250,7 s | 176,2 s | o 85,9 % kratší čekání |
-| Průměrná jízda | 11,4 s | 20,5 s | Plynulý sběr po trase |
-| Nejdelší čekání (nejhorší případ) | 3 493,6 s (~58 min!) | 852,2 s (~14 min) | Zkráceno o 44 minut |
-| Celková ujetá dráha výtahu | 2 922 m | 2 175 m | Úspora 747 metrů |
-| Rozvezeno do 600 s | 27 lidí | 51 lidí | +88 % větší propustnost |
-| Celkem rozvezeno | 400 z 400 (100 %) | 400 z 400 (100 %) | Splněno bez chyb |
+| **Průměrný čas v systému** | 1 262,1 s | **196,8 s** | **-84,4 %** |
+| **Průměrné čekání na patře** | 1 250,7 s | **176,2 s** | **-85,9 %** |
+| **Maximální doba čekání** | 58,2 min | **14,2 min** | **-75,6 %** |
+| **Ujetá vzdálenost** | 2 922 m | **2 175 m** | **-747 m** |
+| **Odbaveno lidí** | 400 / 400 | **400 / 400** | **100 %** |
